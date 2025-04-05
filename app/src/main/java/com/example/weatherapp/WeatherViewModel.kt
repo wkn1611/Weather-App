@@ -136,28 +136,6 @@ fun CustomSwitch(
     }
 }
 
-@Composable
-fun BackgroundSwitch() {
-    var isChecked by remember { mutableStateOf(false) }
-    CustomSwitch(
-        isChecked = isChecked,
-        onCheckedChange = { isChecked = it },
-        width = 65.dp,          // Tùy chỉnh chiều rộng
-        height = 30.dp,         // Tùy chỉnh chiều cao
-        thumbSize = 30.dp,      // Tùy chỉnh kích thước nút tròn
-        checkedGradient = Brush.horizontalGradient(
-            colors = listOf(Color(0xFF2B4485), Color(0xFFAFCAFF)) // Gradient xanh
-        ),
-        uncheckedGradient = Brush.horizontalGradient(
-            colors = listOf(Color(0xff25F9DF), Color(0xffFFEEB2)) // Gradient xám
-        ),
-        checkedThumbGradient =  Brush.verticalGradient(
-            colors = listOf(Color(0xFFC8D7FF), Color(0xFFDCF0FF)) // Màu xanh đậm khi bật
-        ), // Màu xanh đậm khi bật
-        uncheckedThumbGradient = Brush.horizontalGradient(
-            colors = listOf(Color(0xffFED060), Color(0xffFAA96F)) // Màu xám khi tắt
-        )
-    )
-}
+
 
 

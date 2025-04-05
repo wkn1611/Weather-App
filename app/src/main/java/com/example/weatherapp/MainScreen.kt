@@ -13,7 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,7 +32,13 @@ data class WeatherDetails(
     val humidity: Int = 0,
     val weatherType: String = "Unknown",
     val date: String = "N/A",
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val windSpeed: Double = 0.0,
+    val visibility: Int = 0,
+    val sunrise: Int = 0,
+    val sunset: Int = 0,
+    val tempMin: Double = 0.0,
+    val tempMax: Double = 0.0
 )
 
 // Hàm logic lấy thông số thời tiết
@@ -50,18 +58,24 @@ fun getWeatherDetails(weatherState: WeatherState): WeatherDetails {
 
                 WeatherDetails(
                     cityName = weatherData.city.name,
-                    temperature = "${firstForecast.main.temp.toInt()}°F", // Định dạng nhiệt độ
+                    temperature = "${firstForecast.main.temp.toInt()}°F",
                     humidity = firstForecast.main.humidity,
                     weatherType = firstForecast.weather[0].main,
                     date = formattedDate,
-                    isLoading = false
+                    isLoading = false,
+                    windSpeed = firstForecast.wind.speed, // Lấy tốc độ gió
+                    visibility = firstForecast.visibility, // Lấy tầm nhìn
+                    sunrise = weatherData.city.sunrise,   // Lấy giờ mặt trời mọc
+                    sunset = weatherData.city.sunset,     // Lấy giờ mặt trời lặn
+                    tempMin = firstForecast.main.temp_min, // Lấy nhiệt độ thấp nhất
+                    tempMax = firstForecast.main.temp_max  // Lấy nhiệt độ cao nhất
                 )
             } else {
-                WeatherDetails() // Trả về giá trị mặc định nếu không có dữ liệu
+                WeatherDetails() // Trả về mặc định nếu không có dữ liệu
             }
         }
         is WeatherState.Error -> {
-            WeatherDetails() // Trả về giá trị mặc định nếu có lỗi
+            WeatherDetails() // Trả về mặc định nếu có lỗi
         }
     }
 }
@@ -86,6 +100,22 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
     val weatherState by viewModel.weatherState.collectAsState()
     val context = LocalContext.current
     val weatherDetails = getWeatherDetails(weatherState)
+
+    val activeGradient = Brush.linearGradient(
+        colors = listOf(Color(0xff0A2876), Color(0xffAFCAFF)),
+        start = androidx.compose.ui.geometry.Offset(4f, 4f),
+        end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
+    // Gradient khi Switch bật
+    val defaultGradient = Brush.linearGradient(
+        colors = listOf(Color(0xff1CD9C3), Color(0xffEDD685)),
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
+    var isSwitchOn by remember { mutableStateOf(false) }
+    val currentGradient = if (isSwitchOn) activeGradient else defaultGradient
 
     // State to track if permission is granted
     var isLocationPermissionGranted by remember { mutableStateOf(false) }
@@ -118,31 +148,43 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
     // Lấy weatherIcon từ firstForecast (nếu có)
     val weatherIcon = getWeatherIcon(firstForecast)
 
+    // Lấy danh sách dự báo: ngày hiện tại + 4 ngày tiếp theo
+    val forecastList = if (weatherState is WeatherState.Success) {
+        (weatherState as WeatherState.Success).data.list
+            .groupBy {
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it.dt * 1000L))
+            }
+            .map { it.value.first() } // Lấy một bản ghi mỗi ngày
+            .take(4) // Lấy 5 ngày (ngày hiện tại + 4 ngày sau)
+    } else emptyList()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                    colors = listOf(Color(0xFF87CEEB), Color(0xFF2B4485))
-                )
-            ),
+            .background(currentGradient),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
             modifier = Modifier
-                .background(Color.White)
+                //.background(Color.White)
                 .padding(20.dp)
         ) {
             Spacer(modifier = Modifier.weight(1f))
-            BackgroundSwitch()
+            BackgroundSwitch(
+                isChecked = isSwitchOn,
+                onCheckedChange = { isSwitchOn = it }
+            )
         }
 
         Card(
             modifier = Modifier
                 .width(355.dp)
                 .height(170.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF3B82F6))
+                .clip(RoundedCornerShape(16.dp))
+                .background(Brush.horizontalGradient(colors = listOf(Color(0xff5BEBF0), Color(0xff2468E8)))),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Transparent // Đặt màu trong suốt để gradient hiển thị
+            )
         ) {
             Column {
                 Row(
@@ -195,18 +237,20 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
         Card(
             modifier = Modifier
                 .width(355.dp)
-                .height(210.dp)
+                .height(270.dp)
                 .clip(RoundedCornerShape(16.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.LightGray)
+            colors = CardDefaults.cardColors(containerColor = Color(0xffffffff))
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(12.dp)
+                    .height(250.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "AIR QUALITY",
                     color = Color.Black,
-                    fontSize = 16.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -214,18 +258,19 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    WeatherDetailItem(icon = "🌬️", label = "WIND", value = "7km/h")
-                    WeatherDetailItem(icon = "💧", label = "DIOXIDE", value = "0.9")
-                    WeatherDetailItem(icon = "☔", label = "RAIN", value = "25%")
+                    WeatherDetailItem(image = painterResource(id = R.drawable.wind), label = "WIND", "${weatherDetails.windSpeed} m/s")
+                    WeatherDetailItem(image = painterResource(id = R.drawable.dioxide), label = "HUMIDITY" ,"${weatherDetails.humidity}%")
+                    WeatherDetailItem(image = painterResource(id = R.drawable.sunrise11), label = "SUNRISE", value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunrise * 1000L))
+                    )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    WeatherDetailItem(icon = "🌅", label = "02", value = "3")
-                    WeatherDetailItem(icon = "🌡️", label = "TEMP", value = "26.5")
-                    WeatherDetailItem(icon = "☀️", label = "SUN", value = "50")
+                    WeatherDetailItem(image = painterResource(id = R.drawable.hightemp), label = "TEMP MAX", "${weatherDetails.tempMax}°C")
+                    WeatherDetailItem(image = painterResource(id = R.drawable.lowtemp), label = "TEMP MIN", "${weatherDetails.tempMin}°C")
+                    WeatherDetailItem(image = painterResource(id = R.drawable.sunset), label = "SUNSET", value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunset * 1000L)))
                 }
             }
         }
@@ -234,44 +279,69 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
 
         Card(
             modifier = Modifier
-                .height(230.dp)
+                .height(250.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.LightGray)
+            colors = CardDefaults.cardColors(containerColor = Color(0xffffffff))
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 15.dp),
+                    .padding(top = 25.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ForecastItem(day = "YES", date = "01/03", temp = "27°C", icon = "☁️", backgroundColor = Color(0xFFF87171))
-                ForecastItem(day = "TOD", date = "02/03", temp = "29°C", icon = "🌥️", backgroundColor = Color(0xFF60A5FA))
-                ForecastItem(day = "TMR", date = "03/03", temp = "30°C", icon = "🌧️", backgroundColor = Color(0xFF4ADE80))
-                ForecastItem(day = "TMR", date = "04/03", temp = "26°C", icon = "🌧️", backgroundColor = Color(0xFF4ADE80))
+                if (forecastList.isEmpty()) {
+                    repeat(5) {
+                        ForecastItem(
+                            day = "N/A",
+                            date = "N/A",
+                            temp = "N/A",
+                            icon = painterResource(id = R.drawable.sunny)
+                        )
+                    }
+                } else {
+                    forecastList.forEach { forecast ->
+                        val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
+                        val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
+                        ForecastItem(
+                            day = dayFormat.format(Date(forecast.dt * 1000L)),
+                            date = dateFormat.format(Date(forecast.dt * 1000L)),
+                            temp = "${forecast.main.temp.toInt()}°C",
+                            icon = painterResource(id = getWeatherIcon(forecast))
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun WeatherDetailItem(icon: String, label: String, value: String) {
+fun WeatherDetailItem(image: Painter, label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = icon, fontSize = 24.sp)
+        Image(painter = image, contentDescription = label, modifier = Modifier.size(46.dp))
         Text(text = label, color = Color.Gray, fontSize = 12.sp)
         Text(text = value, color = Color.Black, fontSize = 16.sp)
     }
 }
 
 @Composable
-fun ForecastItem(day: String, date: String, temp: String, icon: String, backgroundColor: Color) {
+fun ForecastItem(day: String, date: String, temp: String, icon: Painter) {
     Card(
         modifier = Modifier
             .width(60.dp)
             .height(200.dp)
-            .clip(RoundedCornerShape(22.dp)),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xffFB834F), Color(0xffFFE100))
+                )
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent // Đặt màu trong suốt để gradient hiển thị
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier.padding(top = 20.dp, start = 13.dp),
@@ -282,7 +352,7 @@ fun ForecastItem(day: String, date: String, temp: String, icon: String, backgrou
             Spacer(modifier = Modifier.height(12.dp))
             Text(text = date, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = icon, fontSize = 24.sp)
+            Image(painter = icon, contentDescription = "Forecast Icon", modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.height(12.dp))
             Text(text = temp, color = Color.White, fontSize = 16.sp)
         }
@@ -290,15 +360,28 @@ fun ForecastItem(day: String, date: String, temp: String, icon: String, backgrou
 }
 
 @Composable
-fun CustomSwitchExample() {
-    var checked by remember { mutableStateOf(false) }
-    Switch(
-        checked = checked,
-        onCheckedChange = { checked = it }
+fun BackgroundSwitch(
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    CustomSwitch(
+        isChecked = isChecked,
+        onCheckedChange = onCheckedChange,
+        width = 65.dp,
+        height = 30.dp,
+        thumbSize = 30.dp,
+        checkedGradient = Brush.horizontalGradient(
+            colors = listOf(Color(0xFF2B4485), Color(0xFFAFCAFF))
+        ),
+        uncheckedGradient = Brush.horizontalGradient(
+            colors = listOf(Color(0xff25F9DF), Color(0xffFFEEB2))
+        ),
+        checkedThumbGradient = Brush.verticalGradient(
+            colors = listOf(Color(0xFFC8D7FF), Color(0xFFDCF0FF))
+        ),
+        uncheckedThumbGradient = Brush.horizontalGradient(
+            colors = listOf(Color(0xffFED060), Color(0xffFAA96F))
+        )
     )
 }
 
-@Composable
-fun WeatherScreenKT(viewModel: WeatherViewModel = viewModel()) {
-    MainScreen(viewModel = viewModel)
-}
