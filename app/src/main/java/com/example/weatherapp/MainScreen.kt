@@ -195,17 +195,19 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
+                        Box{
                         if (weatherDetails.isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(64.dp),
+                                modifier = Modifier.size(200.dp),
                                 color = Color.White
                             )
                         } else {
                             Image(
                                 painter = painterResource(id = weatherIcon),
                                 contentDescription = "Weather Icon",
-                                modifier = Modifier.size(64.dp)
+                                modifier = Modifier.size(150.dp).offset(y = (-30).dp)
                             )
+                        }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -250,7 +252,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
                 Text(
                     text = "AIR QUALITY",
                     color = Color.Black,
-                    fontSize = 24.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))

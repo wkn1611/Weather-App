@@ -1,7 +1,10 @@
 package com.example.weatherapp.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,11 +31,39 @@ import com.example.weatherapp.R
 import java.util.*
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherapp.WeatherViewModel
+import android.Manifest
 
 @Composable
-fun WeatherCalendarScreen(navController: NavController) {
+fun WeatherCalendarScreen(navController: NavController, viewModel: WeatherViewModel = viewModel()) {
+    val context = LocalContext.current
+    val weatherState by viewModel.weatherState.collectAsState()
+
+    // State for location permission
+    var isLocationPermissionGranted by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        isLocationPermissionGranted = isGranted
+        if (isGranted) {
+            viewModel.fetchWeatherByLocation(context)
+        } else {
+            viewModel.fetchWeatherByCity("Hanoi")
+        }
+    }
+
+    // Request location permission when screen is composed
+    LaunchedEffect(Unit) {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -132,12 +163,13 @@ fun ForecastCard() {
 
 @Composable
 fun CalendarCard() {
-    // State for current month and year
+    // State for current month, year, and selected day
     val currentDate = remember { mutableStateOf(Calendar.getInstance()) }
+    val selectedDate = remember { mutableStateOf(Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, get(Calendar.DAY_OF_MONTH)) }) }
     val calendar = currentDate.value
 
     // Get the month and year
-    val month = calendar.get(Calendar.MONTH) + 1 // MONTH is 0-indexed
+    val month = calendar.get(Calendar.MONTH) + 1
     val year = calendar.get(Calendar.YEAR)
 
     // Handle previous and next buttons
@@ -150,6 +182,28 @@ fun CalendarCard() {
         calendar.add(Calendar.MONTH, -1)
         currentDate.value = calendar.clone() as Calendar
     }
+
+    // Dữ liệu thời tiết mẫu cho các ngày
+    data class WeatherInfo(val condition: String, val temp: Int, val icon: Int)
+
+    val weatherData = remember {
+        mapOf(
+            // Dữ liệu mẫu: bạn có thể thay bằng dữ liệu API
+            "2025-04-15" to WeatherInfo("Sunny", 27, R.drawable.sunny),
+            "2025-04-16" to WeatherInfo("Cloudy", 24, R.drawable.clouds),
+            "2025-04-17" to WeatherInfo("Rain", 22, R.drawable.rain),
+            "2025-04-18" to WeatherInfo("Storm", 20, R.drawable.storm),
+            "2025-04-19" to WeatherInfo("Sunny", 26, R.drawable.sunny),
+            // Thêm các ngày khác nếu cần
+            "2025-04-20" to WeatherInfo("Cloudy", 25, R.drawable.clouds)
+        )
+    }
+
+    // Lấy thông tin thời tiết cho ngày được chọn
+    val selectedWeather = weatherData[
+        "${selectedDate.value.get(Calendar.YEAR)}-${selectedDate.value.get(Calendar.MONTH) + 1}-${selectedDate.value.get(Calendar.DAY_OF_MONTH)}"
+    ] ?: WeatherInfo("Unknown", 0, R.drawable.sunny) // Mặc định nếu không có dữ liệu
+
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -164,14 +218,22 @@ fun CalendarCard() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.clouds),
+                    painter = painterResource(id = selectedWeather.icon),
                     contentDescription = "Weather Icon",
-                    modifier = Modifier.size(50.dp)
+                    modifier = Modifier.size(60.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text(text = "Cloudy", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    Text(text = "27° C", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = selectedWeather.condition,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "${selectedWeather.temp}°C",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Column(horizontalAlignment = Alignment.End) {
@@ -190,7 +252,7 @@ fun CalendarCard() {
                 }
             }
 
-            // Navigation arrows under "August 2025"
+            // Navigation arrows under "Month Year"
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -199,8 +261,8 @@ fun CalendarCard() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { moveToPreviousMonth()},
-                    modifier = Modifier.size(32.dp).padding(end = 2.dp) // nhỏ lại
+                    onClick = { moveToPreviousMonth() },
+                    modifier = Modifier.size(32.dp).padding(end = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowLeft,
@@ -208,7 +270,7 @@ fun CalendarCard() {
                     )
                 }
                 IconButton(
-                    onClick = { moveToNextMonth()},
+                    onClick = { moveToNextMonth() },
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
@@ -219,22 +281,35 @@ fun CalendarCard() {
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            // Update calendar view after month change
-            CalendarView(month = month, year = year)
+            CalendarView(
+                month = month,
+                year = year,
+                selectedDay = selectedDate.value.get(Calendar.DAY_OF_MONTH),
+                onDaySelected = { day ->
+                    val newDate = Calendar.getInstance().apply {
+                        set(year, month - 1, day)
+                    }
+                    selectedDate.value = newDate
+                }
+            )
         }
     }
 }
 
 @Composable
-fun CalendarView(month: Int, year: Int) {
+fun CalendarView(
+    month: Int,
+    year: Int,
+    selectedDay: Int,
+    onDaySelected: (Int) -> Unit
+) {
     val daysOfWeek = listOf("MO", "TU", "WE", "TH", "FR", "SA", "SU")
     val daysInMonth = getDaysInMonth(month, year)
     val startDayOffset = getStartDayOffset(month, year)
     val days = List(startDayOffset) { 0 } + (1..daysInMonth).toList()
-    val filledDays = days + List((7 - days.size % 7) % 7) { 0 } // Bù cho đủ hàng cuối
+    val filledDays = days + List((7 - days.size % 7) % 7) { 0 }
     val weeks = filledDays.chunked(7)
-    // Get current day
-    val currentDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+
     Column {
         // Header: Days of Week
         Row(
@@ -266,19 +341,20 @@ fun CalendarView(month: Int, year: Int) {
                     if (day == 0) {
                         Spacer(modifier = Modifier.size(40.dp))
                     } else {
-                        val isToday = day == currentDay
+                        val isSelected = day == selectedDay
                         Box(
                             modifier = Modifier
-                                .size(30.dp)
-                                .clip(RoundedCornerShape(4.dp)) // Changed to square shape with rounded corners
-                                .background(if (isToday) Color.Black else Color.Transparent), // Black background for today
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) Color.Black else Color.Transparent)
+                                .clickable { onDaySelected(day) }, // Thêm khả năng nhấn
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = day.toString(),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = if (isToday) Color.White else Color.Black
+                                color = if (isSelected) Color.White else Color.Black
                             )
                         }
                     }
@@ -287,18 +363,17 @@ fun CalendarView(month: Int, year: Int) {
         }
     }
 }
-// Get number of days in a specific month
+
 fun getDaysInMonth(month: Int, year: Int): Int {
     val calendar = Calendar.getInstance()
-    calendar.set(year, month - 1, 1) // Month is 0-indexed in Calendar
+    calendar.set(year, month - 1, 1)
     return calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 }
 
-// Get the starting day of the week (offset) for a specific month
 fun getStartDayOffset(month: Int, year: Int): Int {
     val calendar = Calendar.getInstance()
     calendar.set(year, month - 1, 1)
-    return calendar.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY // Offset based on Monday start
+    return (calendar.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
 }
 @Preview(showBackground = true)
 @Composable

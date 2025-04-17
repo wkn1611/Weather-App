@@ -61,7 +61,7 @@ dependencies {
     implementation("androidx.compose.ui:ui:1.7.8")
     implementation("androidx.compose.ui:ui-tooling-preview:1.7.8")
     debugImplementation("androidx.compose.ui:ui-tooling:1.7.8")
-    implementation("androidx.compose.material3:material3:1.3.1")
+    implementation("androidx.compose.material3:material3:1.3.2")
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -71,8 +71,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation ("com.google.android.gms:play-services-location:21.3.0")
     implementation ("com.google.accompanist:accompanist-permissions:0.34.0")
-    implementation ("androidx.navigation:navigation-compose:2.5.3")
-    implementation ("androidx.compose.foundation:foundation:1.4.3")
-    implementation ("androidx.compose.ui:ui:1.4.3")
-    implementation ("androidx.compose.material:material-icons-extended:1.4.3")
+    implementation("androidx.navigation:navigation-compose:2.8.9") // hoặc bản mới nhất
+    implementation ("androidx.compose.foundation:foundation:1.7.8")
+    implementation ("androidx.compose.ui:ui:1.7.8")
+    implementation ("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.8") // hoặc phiên bản Compose bạn dùng
 }
