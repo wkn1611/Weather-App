@@ -12,13 +12,13 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.shape.CircleShape
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    onNavigateToCalendarScreen: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -37,7 +37,7 @@ fun HomeScreen(navController: NavController) {
         ) {
             // 🖙 Back Button + Location
             Column {
-                CustomBackButton(navController)
+                CustomBackButton(onNavigateBack = onNavigateBack)
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // 🌍 Current Location
@@ -47,7 +47,7 @@ fun HomeScreen(navController: NavController) {
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 14.sp
                     )
-                    Spacer(modifier = Modifier.height(24.dp)) // Dịch xuống dưới
+                    Spacer(modifier = Modifier.height(24.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -74,11 +74,9 @@ fun HomeScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 MenuItem(Icons.Outlined.Event, "Calender") {
-                    navController.navigate("calendar_screen")
+                    onNavigateToCalendarScreen() // Điều hướng sang WeatherCalendarScreen
                 }
-                MenuItem(Icons.Outlined.NotificationsNone, "Notifications") {
-                    navController.navigate("notifications_screen")
-                }
+                // Đã xóa menu item "Notifications" vì không nằm trong luồng navigation
             }
 
             // ⚙️ Settings & Share App (Đặt sát dưới)
@@ -104,11 +102,11 @@ fun HomeScreen(navController: NavController) {
 }
 
 @Composable
-fun CustomBackButton(navController: NavController) {
+fun CustomBackButton(onNavigateBack: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clickable { navController.popBackStack() }
+            .clickable { onNavigateBack() } // Sử dụng lambda thay vì navController
             .padding(vertical = 12.dp)
     ) {
         Canvas(modifier = Modifier.size(13.dp, 12.dp)) {
@@ -148,10 +146,4 @@ fun MenuItem(icon: ImageVector, title: String, onClick: () -> Unit) {
         Spacer(modifier = Modifier.width(12.dp))
         Text(title, color = Color.White, fontSize = 20.sp)
     }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun PreviewMainScreen() {
-    HomeScreen(navController = rememberNavController())
 }

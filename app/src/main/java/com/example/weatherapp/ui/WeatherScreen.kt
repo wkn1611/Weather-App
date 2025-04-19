@@ -1,5 +1,6 @@
 package com.example.weatherapp.ui
 
+import android.R.attr.onClick
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -42,7 +43,7 @@ val sourceSans3 = FontFamily(
 )
 
 @Composable
-fun WeatherScreen(navController: NavController, viewModel: WeatherViewModel = viewModel()) {
+fun WeatherScreen(onNavigateToHomeScreen: () -> Unit, viewModel: WeatherViewModel = viewModel()) {
     val weatherState by viewModel.weatherState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     val defaultCities = listOf("Hanoi", "Ho Chi Minh", "Da Nang", "Hue")
@@ -109,7 +110,7 @@ fun WeatherScreen(navController: NavController, viewModel: WeatherViewModel = vi
                     modifier = Modifier.padding(start = 42.dp)
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = { }) {
+                IconButton(onClick = onNavigateToHomeScreen) {
                     Icon(Icons.Default.MoreHoriz, contentDescription = "Menu", tint = Color.White)
                 }
             }

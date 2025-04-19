@@ -1,19 +1,48 @@
-package com.example.weatherapp.navigation
-
 import androidx.compose.runtime.Composable
-import androidx.navigation.compose.*
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.weatherapp.MainScreen
 import com.example.weatherapp.ui.HomeScreen
+import com.example.weatherapp.ui.WeatherCalendarScreen
 import com.example.weatherapp.ui.WeatherScreen
 
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController() // Create NavHostController with the correct type
-    NavHost(navController = navController, startDestination = "HomeScreen") {
-        composable("homeScreen") {
-            HomeScreen(navController)
+fun WeatherAppNavGraph(
+    navController: NavHostController = rememberNavController()
+) {
+    NavHost(
+        navController = navController,
+        startDestination = "mainScreen" // Điểm bắt đầu là MainScreen
+    ) {
+        composable("mainScreen") {
+            MainScreen(
+                onNavigateToWeatherScreen = {
+                    navController.navigate("weatherScreen")
+                }
+            )
         }
         composable("weatherScreen") {
-            WeatherScreen(navController)
+            WeatherScreen(
+                onNavigateToHomeScreen = {
+                    navController.navigate("homeScreen")
+                }
+            )
+        }
+        composable("homeScreen") {
+            HomeScreen(
+                onNavigateToCalendarScreen = {
+                    navController.navigate("weatherCalendarScreen")
+                }
+            )
+        }
+        composable("weatherCalendarScreen") {
+            WeatherCalendarScreen(
+                onNavigateBack = {
+                    navController.popBackStack() // Quay lại màn hình trước đó
+                }
+            )
         }
     }
 }

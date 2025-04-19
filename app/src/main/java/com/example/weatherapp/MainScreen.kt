@@ -7,6 +7,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -96,7 +99,7 @@ fun getWeatherIcon(forecast: Item0?): Int {
 }
 
 @Composable
-fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
+fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScreen: () -> Unit) {
     val weatherState by viewModel.weatherState.collectAsState()
     val context = LocalContext.current
     val weatherDetails = getWeatherDetails(weatherState)
@@ -277,7 +280,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Card(
             modifier = Modifier
@@ -316,6 +319,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel()) {
                 }
             }
         }
+        CustomBottomNavigationBar(onLocationClick = { }, onMenuClick = onNavigateToWeatherScreen )
     }
 }
 
@@ -332,7 +336,7 @@ fun WeatherDetailItem(image: Painter, label: String, value: String) {
 fun ForecastItem(day: String, date: String, temp: String, icon: Painter) {
     Card(
         modifier = Modifier
-            .width(60.dp)
+            .width(55.dp)
             .height(200.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(
@@ -346,7 +350,7 @@ fun ForecastItem(day: String, date: String, temp: String, icon: Painter) {
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(top = 20.dp, start = 13.dp),
+            modifier = Modifier.padding(top = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -354,7 +358,11 @@ fun ForecastItem(day: String, date: String, temp: String, icon: Painter) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(text = date, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(12.dp))
-            Image(painter = icon, contentDescription = "Forecast Icon", modifier = Modifier.size(24.dp))
+            Image(
+                painter = icon,
+                contentDescription = "Forecast Icon",
+                modifier = Modifier.size(62.dp)
+            )
             Spacer(modifier = Modifier.height(12.dp))
             Text(text = temp, color = Color.White, fontSize = 16.sp)
         }
@@ -385,5 +393,45 @@ fun BackgroundSwitch(
             colors = listOf(Color(0xffFED060), Color(0xffFAA96F))
         )
     )
+}
+
+@Composable
+fun CustomBottomNavigationBar(
+    onLocationClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp) // Chiều cao của thanh điều hướng
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) // Bo góc trên
+            .background(Color(0xFFFFF5E1)) // Màu nền nhạt giống trong hình
+            .padding(horizontal = 16.dp) // Khoảng cách hai bên
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceBetween, // Đặt hai biểu tượng ở hai đầu
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Biểu tượng vị trí
+            IconButton(onClick = onLocationClick) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Location",
+                    tint = Color.Black
+                )
+            }
+
+            // Biểu tượng menu
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = Color.Black
+                )
+            }
+        }
+    }
 }
 

@@ -21,7 +21,24 @@ interface WeatherApiService {
         @Query("appid") apiKey: String,
         @Query("units") units: String = "metric"
     ): Response<API>
+
+    @GET("data/2.5/weather")
+    suspend fun getCurrentWeather(
+        @Query("lat") latitude: Double,
+        @Query("lon") longitude: Double,
+        @Query("units") units: String = "metric",
+        @Query("appid") apiKey: String
+    ): Response<WeatherResponse>
+
+    @GET("data/2.5/forecast")
+    suspend fun getWeatherForecast(
+        @Query("lat") latitude: Double,
+        @Query("lon") longitude: Double,
+        @Query("units") units: String = "metric",
+        @Query("appid") apiKey: String
+    ): Response<ForecastResponse>
 }
+
 
 object RetrofitClient {
     private const val BASE_URL = "https://api.openweathermap.org/data/2.5/"
