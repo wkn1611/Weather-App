@@ -1,98 +1,97 @@
 package com.example.weatherapp
 
-data class API(
-    val city: City,
-    val cnt: Int,
-    val cod: String,
-    val list: List<Item0>,
-    val message: Int
+import com.google.gson.annotations.SerializedName
+
+// Dữ liệu cho getWeatherByCity và getWeatherByLocation
+data class WeatherResponse(
+    @SerializedName("coord") val coord: Coord,
+    @SerializedName("weather") val weather: List<Weather>,
+    @SerializedName("main") val main: Main,
+    @SerializedName("visibility") val visibility: Int,
+    @SerializedName("wind") val wind: Wind,
+    @SerializedName("clouds") val clouds: Clouds,
+    @SerializedName("dt") val dt: Long,
+    @SerializedName("sys") val sys: WeatherSys,
+    @SerializedName("timezone") val timezone: Int,
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String,
+    @SerializedName("cod") val cod: Int
 )
 
 data class Weather(
-    val description: String,
-    val icon: String,
-    val id: Int,
-    val main: String
-)
-
-data class City(
-    val coord: Coord,
-    val country: String,
-    val id: Int,
-    val name: String,
-    val population: Int,
-    val sunrise: Int,
-    val sunset: Int,
-    val timezone: Int
-)
-
-data class Clouds(
-    val all: Int
+    @SerializedName("id") val id: Int,
+    @SerializedName("main") val main: String,
+    @SerializedName("description") val description: String,
+    @SerializedName("icon") val icon: String
 )
 
 data class Coord(
-    val lat: Double,
-    val lon: Double
-)
-
-data class Item0(
-    val clouds: Clouds,
-    val dt: Int,
-    val dt_txt: String,
-    val main: Main,
-    val pop: Float,
-    val sys: Sys,
-    val visibility: Int,
-    val weather: List<Weather>,
-    val wind: Wind
+    @SerializedName("lat") val lat: Double,
+    @SerializedName("lon") val lon: Double
 )
 
 data class Main(
-    val feels_like: Double,
-    val grnd_level: Int,
-    val humidity: Int,
-    val pressure: Int,
-    val sea_level: Int,
-    val temp: Double,
-    val temp_kf: Double,
-    val temp_max: Double,
-    val temp_min: Double
-)
-
-data class Sys(
-    val pod: String
+    @SerializedName("temp") val temp: Double,
+    @SerializedName("feels_like") val feelsLike: Double,
+    @SerializedName("temp_min") val tempMin: Double,
+    @SerializedName("temp_max") val tempMax: Double,
+    @SerializedName("pressure") val pressure: Int,
+    @SerializedName("humidity") val humidity: Int,
+    @SerializedName("sea_level") val seaLevel: Int? = null,
+    @SerializedName("grnd_level") val grndLevel: Int? = null,
+    @SerializedName("temp_kf") val tempKf: Double? = null
 )
 
 data class Wind(
-    val deg: Int,
-    val gust: Double,
-    val speed: Double
+    @SerializedName("speed") val speed: Double,
+    @SerializedName("deg") val deg: Int,
+    @SerializedName("gust") val gust: Double? = null
 )
 
-data class WeatherResponse(
-    val main: Main,
-    val weather: List<Weather>,
-    val name: String
+data class Clouds(
+    @SerializedName("all") val all: Int
 )
 
-data class Main(
-    val temp: Double,
-    val humidity: Int,
-    val pressure: Int
+data class WeatherSys(
+    @SerializedName("type") val type: Int? = null,
+    @SerializedName("id") val id: Int? = null,
+    @SerializedName("country") val country: String,
+    @SerializedName("sunrise") val sunrise: Long,
+    @SerializedName("sunset") val sunset: Long
 )
 
-data class Weather(
-    val id: Int,
-    val main: String,
-    val description: String,
-    val icon: String
-)
-
+// Dữ liệu cho getWeatherForecast
 data class ForecastResponse(
-    val list: List<ForecastItem>
+    @SerializedName("cod") val cod: String,
+    @SerializedName("message") val message: Int,
+    @SerializedName("cnt") val cnt: Int,
+    @SerializedName("list") val list: List<ForecastItem>,
+    @SerializedName("city") val city: City
 )
 
 data class ForecastItem(
-    val dt: Long,
-    val main: Main,
-    val weather: List<Weather>
+    @SerializedName("dt") val dt: Long,
+    @SerializedName("main") val main: Main,
+    @SerializedName("weather") val weather: List<Weather>,
+    @SerializedName("clouds") val clouds: Clouds,
+    @SerializedName("wind") val wind: Wind,
+    @SerializedName("visibility") val visibility: Int,
+    @SerializedName("pop") val pop: Double,
+    @SerializedName("sys") val sys: ForecastSys,
+    @SerializedName("dt_txt") val dtTxt: String
+)
+
+data class City(
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String,
+    @SerializedName("coord") val coord: Coord,
+    @SerializedName("country") val country: String,
+    @SerializedName("population") val population: Int,
+    @SerializedName("timezone") val timezone: Int,
+    @SerializedName("sunrise") val sunrise: Long,
+    @SerializedName("sunset") val sunset: Long
+)
+
+data class ForecastSys(
+    @SerializedName("pod") val pod: String
+)

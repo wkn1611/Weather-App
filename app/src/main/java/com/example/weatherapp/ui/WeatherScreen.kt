@@ -1,6 +1,6 @@
 package com.example.weatherapp.ui
 
-import android.R.attr.onClick
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -23,18 +24,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import com.example.weatherapp.R
-import com.example.weatherapp.model.WeatherModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.weatherapp.R
+import com.example.weatherapp.WeatherResponse
 import com.example.weatherapp.WeatherState
 import com.example.weatherapp.WeatherViewModel
-import com.example.weatherapp.getWeatherDetails
-import com.example.weatherapp.getWeatherIcon
+import com.example.weatherapp.model.WeatherModel
+import com.example.weatherapp.normalizeCityName
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 // Font tùy chỉnh
 val sourceSans3 = FontFamily(
@@ -42,36 +44,65 @@ val sourceSans3 = FontFamily(
     Font(R.font.ss3_bold, FontWeight.Bold)
 )
 
-@Composable
-fun WeatherScreen(onNavigateToHomeScreen: () -> Unit, viewModel: WeatherViewModel = viewModel()) {
-    val weatherState by viewModel.weatherState.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
-    val defaultCities = listOf("Hanoi", "Ho Chi Minh", "Da Nang", "Hue")
-    val weatherStates = remember { mutableStateListOf<WeatherState>() }
+// Ánh xạ giữa tên chuẩn hóa và tên tiếng Việt
+val cityNameMapping = mapOf(
+    "Hanoi" to "Hà Nội",
+    "Ho Chi Minh" to "Hồ Chí Minh",
+    "Can Tho" to "Cần Thơ", // Thêm Cần Thơ
+    "Hue" to "Huế",
+    "Vinh" to "Nghệ An"
+)
 
-    // Gọi API cho 4 thành phố mặc định khi màn hình được tạo
+// Ánh xạ cho các trường hợp đặc biệt (tỉnh/thành phố không được API hỗ trợ trực tiếp)
+val specialCityMapping = mapOf(
+    "Nghe An" to "Vinh"
+)
+
+@Composable
+fun WeatherScreen(
+    onNavigateToHomeScreen: () -> Unit,
+    viewModel: WeatherViewModel = viewModel(),
+    onNavigateBack: () -> Unit,
+    navController: NavController = rememberNavController()
+) {
+    val cityWeatherStates by viewModel.cityWeatherStates.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+    // Thay "Đà Nẵng" bằng "Cần Thơ"
+    val defaultCities = listOf("Hà Nội", "Hồ Chí Minh", "Cần Thơ", "Huế").map { normalizeCityName(it) }
+    var searchResultCity by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(Unit) {
-        weatherStates.clear()
-        defaultCities.forEach { city ->
-            viewModel.fetchWeatherByCity(city)
-            weatherStates.add(WeatherState.Loading) // Thêm trạng thái Loading ban đầu
+        defaultCities.forEachIndexed { index, city ->
+            delay(index * 500L)
+            val apiCityName = specialCityMapping[city] ?: city
+            viewModel.fetchWeatherByCity(apiCityName)
         }
     }
 
-    // Cập nhật weatherStates khi weatherState thay đổi
-    LaunchedEffect(weatherState) {
-        val currentState = weatherState // Biến tạm để tránh lỗi smart cast
-        val city = when (currentState) {
-            is WeatherState.Success -> currentState.data.city.name
-            is WeatherState.Error -> {
-                val loadingIndex = weatherStates.indexOfFirst { it is WeatherState.Loading }
-                if (loadingIndex != -1) defaultCities[loadingIndex] else return@LaunchedEffect
-            }
-            else -> return@LaunchedEffect
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotBlank()) {
+            val normalizedQuery = normalizeCityName(searchQuery)
+            val apiCityName = specialCityMapping[normalizedQuery] ?: normalizedQuery
+            viewModel.fetchWeatherByCity(apiCityName)
+            searchResultCity = apiCityName
+        } else {
+            searchResultCity = null
         }
-        val index = defaultCities.indexOf(city)
-        if (index != -1 && index < weatherStates.size) {
-            weatherStates[index] = currentState
+    }
+
+    LaunchedEffect(cityWeatherStates) {
+        Log.d("WeatherScreen", "cityWeatherStates: $cityWeatherStates")
+    }
+
+    LaunchedEffect(cityWeatherStates) {
+        val citiesToCheck = if (searchResultCity != null) listOf(searchResultCity!!) else defaultCities
+        citiesToCheck.forEach { city ->
+            val state = cityWeatherStates[city]
+            if (state is WeatherState.Error) {
+                val displayCityName = if (city == searchResultCity) searchQuery else cityNameMapping[city] ?: city
+                snackbarHostState.showSnackbar("Failed to load weather for $displayCityName: ${state.message}")
+            }
         }
     }
 
@@ -88,19 +119,17 @@ fun WeatherScreen(onNavigateToHomeScreen: () -> Unit, viewModel: WeatherViewMode
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Thanh tiêu đề
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(onClick = { onNavigateBack() }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Default.ArrowBack,
                         contentDescription = "Back",
                         tint = Color.White
                     )
                 }
-
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     "Weather",
@@ -117,59 +146,67 @@ fun WeatherScreen(onNavigateToHomeScreen: () -> Unit, viewModel: WeatherViewMode
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Thanh tìm kiếm
             SearchBar(searchQuery = searchQuery, onQueryChange = { searchQuery = it })
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Hiển thị danh sách thời tiết
-            when {
-                weatherStates.isEmpty() -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            if (cityWeatherStates.isEmpty()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                val citiesToShow = if (searchResultCity != null && cityWeatherStates[searchResultCity]?.let { it is WeatherState.Success } == true) {
+                    listOf(searchResultCity!!)
+                } else {
+                    defaultCities
                 }
-                else -> {
-                    val filteredData = weatherStates.mapIndexed { index, state ->
-                        if (state is WeatherState.Success && !state.data.city.name.contains(searchQuery, ignoreCase = true)) {
-                            WeatherState.Error("Filtered out") // Tạm thời đánh dấu để bỏ qua
-                        } else {
-                            state
-                        }
-                    }.filter { it !is WeatherState.Error || it.message != "Filtered out" }
 
+                val filteredData = citiesToShow.mapNotNull { city ->
+                    val state = cityWeatherStates[city] ?: return@mapNotNull null
+                    if (state is WeatherState.Success) {
+                        city to state
+                    } else {
+                        if (state is WeatherState.Error) {
+                            Log.e("WeatherScreen", "Error for city $city: ${state.message}")
+                        }
+                        null
+                    }
+                }
+
+                LaunchedEffect(filteredData) {
+                    Log.d("WeatherScreen", "filteredData: $filteredData")
+                }
+
+                if (filteredData.isEmpty()) {
+                    Text(
+                        text = "No results found",
+                        color = Color.White,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                         contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)
                     ) {
-                        items(filteredData) { state ->
-                            when (state) {
-                                is WeatherState.Success -> {
-                                    val details = getWeatherDetails(state) // Từ MainScreen.kt
-                                    WeatherCard(
-                                        weather = WeatherModel(
-                                            city = details.cityName,
-                                            temperature = details.temperature,
-                                            highTemp = details.tempMax.toString(),
-                                            lowTemp = details.tempMin.toString(),
-                                            icon = getWeatherIcon(state.data.list.firstOrNull()) // Từ MainScreen.kt
-                                        )
-                                    )
-                                }
-                                is WeatherState.Error -> {
-                                    Text(
-                                        text = state.message,
-                                        color = Color.White,
-                                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                                    )
-                                }
-                                is WeatherState.Loading -> {
-                                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                                }
-                            }
+                        items(filteredData) { (city, state) ->
+                            val weather = state.data
+                            WeatherCard(
+                                weather = WeatherModel(
+                                    city = cityNameMapping[city] ?: if (city == searchResultCity) searchQuery else city,
+                                    temperature = "${weather.main.temp.toInt()}°C",
+                                    highTemp = weather.main.tempMax.roundToInt().toString(),
+                                    lowTemp = weather.main.tempMin.roundToInt().toString(),
+                                    icon = getWeatherIcon(weather)
+                                )
+                            )
                         }
                     }
                 }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -178,53 +215,60 @@ fun SearchBar(searchQuery: String, onQueryChange: (String) -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth(0.9f)
-            .height(40.dp)
+            .height(56.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(Color(0xFFFF8A65), Color(0xFFE57373))
                 )
             )
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            TextField(
-                value = searchQuery,
-                onValueChange = onQueryChange,
-                placeholder = {
-                    Text(
-                        text = "SEARCH FOR A CITY",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = sourceSans3
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Transparent),
-                colors = TextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                singleLine = true
-            )
-        }
+        TextField(
+            value = searchQuery,
+            onValueChange = onQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Transparent),
+            placeholder = {
+                Text(
+                    text = "SEARCH FOR A CITY",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = sourceSans3
+                )
+            },
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                cursorColor = Color.White,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotBlank()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Clear",
+                            tint = Color.White.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -271,7 +315,8 @@ fun WeatherCard(weather: WeatherModel) {
                         )
                         Text(
                             text = weather.city,
-                            fontSize = 12.sp,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     }
@@ -294,10 +339,14 @@ fun WeatherCard(weather: WeatherModel) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewWeatherScreen() {
-    val navController = rememberNavController()
-    val viewModel: WeatherViewModel = viewModel() // Thêm dòng này
-    WeatherScreen(navController = navController, viewModel = viewModel) //Cập nhật dòng này
+fun getWeatherIcon(weather: WeatherResponse?): Int {
+    val iconCode = weather?.weather?.firstOrNull()?.icon ?: "01d"
+    return when (iconCode) {
+        "01d", "01n" -> R.drawable.sunny
+        "02d", "02n" -> R.drawable.clouds
+        "03d", "03n", "04d", "04n" -> R.drawable.clouds
+        "09d", "09n", "10d", "10n" -> R.drawable.rain
+        "11d", "11n" -> R.drawable.storm
+        else -> R.drawable.clouds
+    }
 }

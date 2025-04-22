@@ -38,13 +38,13 @@ data class WeatherDetails(
     val isLoading: Boolean = false,
     val windSpeed: Double = 0.0,
     val visibility: Int = 0,
-    val sunrise: Int = 0,
-    val sunset: Int = 0,
+    val sunrise: Long = 0,
+    val sunset: Long = 0,
     val tempMin: Double = 0.0,
     val tempMax: Double = 0.0
 )
 
-// Hàm logic lấy thông số thời tiết
+// Hàm logic lấy thông số thời tiết từ WeatherResponse
 fun getWeatherDetails(weatherState: WeatherState): WeatherDetails {
     return when (weatherState) {
         is WeatherState.Loading -> {
@@ -52,30 +52,25 @@ fun getWeatherDetails(weatherState: WeatherState): WeatherDetails {
         }
         is WeatherState.Success -> {
             val weatherData = weatherState.data
-            if (weatherData.list.isNotEmpty()) {
-                val firstForecast = weatherData.list[0]
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                val date = dateFormat.parse(firstForecast.dt_txt)
-                val displayDateFormat = SimpleDateFormat("EEE d MMM", Locale.getDefault())
-                val formattedDate = date?.let { displayDateFormat.format(it) } ?: "N/A"
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val date = Date(weatherData.dt * 1000L)
+            val displayDateFormat = SimpleDateFormat("EEE d MMM", Locale.getDefault())
+            val formattedDate = displayDateFormat.format(date)
 
-                WeatherDetails(
-                    cityName = weatherData.city.name,
-                    temperature = "${firstForecast.main.temp.toInt()}°F",
-                    humidity = firstForecast.main.humidity,
-                    weatherType = firstForecast.weather[0].main,
-                    date = formattedDate,
-                    isLoading = false,
-                    windSpeed = firstForecast.wind.speed, // Lấy tốc độ gió
-                    visibility = firstForecast.visibility, // Lấy tầm nhìn
-                    sunrise = weatherData.city.sunrise,   // Lấy giờ mặt trời mọc
-                    sunset = weatherData.city.sunset,     // Lấy giờ mặt trời lặn
-                    tempMin = firstForecast.main.temp_min, // Lấy nhiệt độ thấp nhất
-                    tempMax = firstForecast.main.temp_max  // Lấy nhiệt độ cao nhất
-                )
-            } else {
-                WeatherDetails() // Trả về mặc định nếu không có dữ liệu
-            }
+            WeatherDetails(
+                cityName = weatherData.name,
+                temperature = "${weatherData.main.temp.toInt()}°C", // Đơn vị là °C vì API dùng metric
+                humidity = weatherData.main.humidity,
+                weatherType = weatherData.weather.firstOrNull()?.main ?: "Unknown",
+                date = formattedDate,
+                isLoading = false,
+                windSpeed = weatherData.wind.speed,
+                visibility = weatherData.visibility,
+                sunrise = weatherData.sys.sunrise,
+                sunset = weatherData.sys.sunset,
+                tempMin = weatherData.main.tempMin,
+                tempMax = weatherData.main.tempMax
+            )
         }
         is WeatherState.Error -> {
             WeatherDetails() // Trả về mặc định nếu có lỗi
@@ -83,24 +78,22 @@ fun getWeatherDetails(weatherState: WeatherState): WeatherDetails {
     }
 }
 
-// Hàm ánh xạ loại thời tiết với icon
-fun getWeatherIcon(forecast: Item0?): Int {
-    return if (forecast != null) {
-        when (forecast.weather[0].main) {
-            "Clear" -> R.drawable.sunny
-            "Clouds" -> R.drawable.clouds
-            "Rain" -> R.drawable.rain
-            "Thunderstorm" -> R.drawable.storm
-            else -> R.drawable.sunny // Mặc định
-        }
-    } else {
-        R.drawable.sunny // Mặc định nếu không có dữ liệu
+// Hàm ánh xạ loại thời tiết với icon từ WeatherResponse
+fun getWeatherIcon(weather: WeatherResponse?): Int {
+    val weatherType = weather?.weather?.firstOrNull()?.main ?: "Unknown"
+    return when (weatherType) {
+        "Clear" -> R.drawable.sunny
+        "Clouds" -> R.drawable.clouds
+        "Rain" -> R.drawable.rain
+        "Thunderstorm" -> R.drawable.storm
+        else -> R.drawable.sunny // Mặc định
     }
 }
 
 @Composable
 fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScreen: () -> Unit) {
     val weatherState by viewModel.weatherState.collectAsState()
+    val forecastState by viewModel.forecastState.collectAsState()
     val context = LocalContext.current
     val weatherDetails = getWeatherDetails(weatherState)
 
@@ -110,15 +103,28 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
         end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
     )
 
-    // Gradient khi Switch bật
     val defaultGradient = Brush.linearGradient(
         colors = listOf(Color(0xff1CD9C3), Color(0xffEDD685)),
         start = androidx.compose.ui.geometry.Offset(0f, 0f),
         end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
     )
 
+    // Gradient tùy chỉnh cho Card chứa ForecastItem
+    val forecastCardActiveGradient = Brush.linearGradient(
+        colors = listOf(Color(0xFFAFCAFF), Color(0xFF7AAFFF)), // Gradient khi Switch bật: AFCAFF (xanh lam nhạt) -> 7AAFFF (xanh lam đậm hơn)
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
+    val forecastCardDefaultGradient = Brush.linearGradient(
+        colors = listOf(Color(0xFFFFEEB2), Color(0xFFFFF7D9)), // Gradient khi Switch tắt: FFEEB2 (vàng nhạt) -> FFF7D9 (vàng rất nhạt)
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
     var isSwitchOn by remember { mutableStateOf(false) }
     val currentGradient = if (isSwitchOn) activeGradient else defaultGradient
+    val forecastCardGradient = if (isSwitchOn) forecastCardActiveGradient else forecastCardDefaultGradient
 
     // State to track if permission is granted
     var isLocationPermissionGranted by remember { mutableStateOf(false) }
@@ -141,185 +147,222 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
-    // Lấy firstForecast từ weatherState
-    val firstForecast = if (weatherState is WeatherState.Success && (weatherState as WeatherState.Success).data.list.isNotEmpty()) {
-        (weatherState as WeatherState.Success).data.list[0]
-    } else {
-        null
+    // Lấy weatherIcon từ weatherState
+    val weatherIcon = getWeatherIcon(if (weatherState is WeatherState.Success) (weatherState as WeatherState.Success).data else null)
+
+    // Lấy danh sách dự báo từ forecastState: ngày hiện tại + 3 ngày tiếp theo (tổng 4 ngày)
+    val forecastList = when (forecastState) {
+        is ForecastState.Success -> {
+            (forecastState as ForecastState.Success).forecast.drop(1).take(4) // Bỏ ngày hiện tại, lấy 4 ngày tiếp theo
+        }
+        else -> emptyList()
     }
 
-    // Lấy weatherIcon từ firstForecast (nếu có)
-    val weatherIcon = getWeatherIcon(firstForecast)
-
-    // Lấy danh sách dự báo: ngày hiện tại + 4 ngày tiếp theo
-    val forecastList = if (weatherState is WeatherState.Success) {
-        (weatherState as WeatherState.Success).data.list
-            .groupBy {
-                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it.dt * 1000L))
-            }
-            .map { it.value.first() } // Lấy một bản ghi mỗi ngày
-            .take(4) // Lấy 5 ngày (ngày hiện tại + 4 ngày sau)
-    } else emptyList()
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(currentGradient),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(currentGradient)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                //.background(Color.White)
-                .padding(20.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-            BackgroundSwitch(
-                isChecked = isSwitchOn,
-                onCheckedChange = { isSwitchOn = it }
-            )
-        }
+            Row(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                BackgroundSwitch(
+                    isChecked = isSwitchOn,
+                    onCheckedChange = { isSwitchOn = it }
+                )
+            }
 
-        Card(
-            modifier = Modifier
-                .width(355.dp)
-                .height(170.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Brush.horizontalGradient(colors = listOf(Color(0xff5BEBF0), Color(0xff2468E8)))),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Transparent // Đặt màu trong suốt để gradient hiển thị
-            )
-        ) {
-            Column {
+            Card(
+                modifier = Modifier
+                    .width(355.dp)
+                    .height(170.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Brush.horizontalGradient(colors = listOf(Color(0xff5BEBF0), Color(0xff2468E8)))),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.Transparent
+                )
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .height(150.dp)
+                                .width(150.dp)
+                        ) {
+                            if (weatherDetails.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(150.dp),
+                                    color = Color.White
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = weatherIcon),
+                                    contentDescription = "Weather Icon",
+                                    modifier = Modifier.size(170.dp)
+                                )
+                            }
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = weatherDetails.temperature,
+                                color = Color.White,
+                                fontSize = if (weatherDetails.temperature == "Updating...") 24.sp else 48.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .alpha(if (weatherDetails.temperature == "Updating...") 0.7f else 1f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = weatherDetails.cityName,
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = weatherDetails.date,
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier
+                    .width(355.dp)
+                    .height(240.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xffffffff))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .height(250.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "AIR QUALITY",
+                        color = Color.Black,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        WeatherDetailItem(
+                            image = painterResource(id = R.drawable.wind),
+                            label = "WIND",
+                            "${weatherDetails.windSpeed} m/s"
+                        )
+                        WeatherDetailItem(
+                            image = painterResource(id = R.drawable.dioxide),
+                            label = "HUMIDITY",
+                            "${weatherDetails.humidity}%"
+                        )
+                        WeatherDetailItem(
+                            image = painterResource(id = R.drawable.sunrise11),
+                            label = "SUNRISE",
+                            value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunrise * 1000L))
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        WeatherDetailItem(
+                            image = painterResource(id = R.drawable.hightemp),
+                            label = "TEMP MAX",
+                            "${weatherDetails.tempMax}°C"
+                        )
+                        WeatherDetailItem(
+                            image = painterResource(id = R.drawable.lowtemp),
+                            label = "TEMP MIN",
+                            "${weatherDetails.tempMin}°C"
+                        )
+                        WeatherDetailItem(
+                            image = painterResource(id = R.drawable.sunset),
+                            label = "SUNSET",
+                            value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunset * 1000L))
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier
+                    .height(260.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(forecastCardGradient),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(top = 15.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Box{
-                        if (weatherDetails.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(200.dp),
-                                color = Color.White
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(id = weatherIcon),
-                                contentDescription = "Weather Icon",
-                                modifier = Modifier.size(150.dp).offset(y = (-30).dp)
+                    if (forecastList.isEmpty()) {
+                        repeat(4) {
+                            ForecastItem(
+                                day = "N/A",
+                                date = "N/A",
+                                temp = "N/A",
+                                icon = painterResource(id = R.drawable.sunny)
                             )
                         }
+                    } else {
+                        forecastList.forEach { forecast ->
+                            val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
+                            val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
+                            ForecastItem(
+                                day = dayFormat.format(forecast.date),
+                                date = dateFormat.format(forecast.date),
+                                temp = "${forecast.tempMax.toInt()}°C",
+                                icon = painterResource(id = forecast.icon)
+                            )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = weatherDetails.cityName,
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = weatherDetails.date,
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 14.sp
-                        )
                     }
-                    Text(
-                        text = weatherDetails.temperature,
-                        color = Color.White,
-                        fontSize = if (weatherDetails.temperature == "Updating...") 24.sp else 48.sp, // Giảm kích thước chữ khi đang cập nhật
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .alpha(if (weatherDetails.temperature == "Updating...") 0.7f else 1f) // Làm mờ khi đang cập nhật
-                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Card(
+        CustomBottomNavigationBar(
             modifier = Modifier
-                .width(355.dp)
-                .height(270.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xffffffff))
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .height(250.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "AIR QUALITY",
-                    color = Color.Black,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    WeatherDetailItem(image = painterResource(id = R.drawable.wind), label = "WIND", "${weatherDetails.windSpeed} m/s")
-                    WeatherDetailItem(image = painterResource(id = R.drawable.dioxide), label = "HUMIDITY" ,"${weatherDetails.humidity}%")
-                    WeatherDetailItem(image = painterResource(id = R.drawable.sunrise11), label = "SUNRISE", value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunrise * 1000L))
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    WeatherDetailItem(image = painterResource(id = R.drawable.hightemp), label = "TEMP MAX", "${weatherDetails.tempMax}°C")
-                    WeatherDetailItem(image = painterResource(id = R.drawable.lowtemp), label = "TEMP MIN", "${weatherDetails.tempMin}°C")
-                    WeatherDetailItem(image = painterResource(id = R.drawable.sunset), label = "SUNSET", value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunset * 1000L)))
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier
-                .height(250.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xffffffff))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 25.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (forecastList.isEmpty()) {
-                    repeat(5) {
-                        ForecastItem(
-                            day = "N/A",
-                            date = "N/A",
-                            temp = "N/A",
-                            icon = painterResource(id = R.drawable.sunny)
-                        )
-                    }
+                .height(45.dp)
+                .align(Alignment.BottomCenter),
+            onLocationClick = {
+                if (isLocationPermissionGranted) {
+                    viewModel.fetchWeatherByLocation(context)
                 } else {
-                    forecastList.forEach { forecast ->
-                        val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
-                        val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
-                        ForecastItem(
-                            day = dayFormat.format(Date(forecast.dt * 1000L)),
-                            date = dateFormat.format(Date(forecast.dt * 1000L)),
-                            temp = "${forecast.main.temp.toInt()}°C",
-                            icon = painterResource(id = getWeatherIcon(forecast))
-                        )
-                    }
+                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }
-            }
-        }
-        CustomBottomNavigationBar(onLocationClick = { }, onMenuClick = onNavigateToWeatherScreen )
+            },
+            onMenuClick = onNavigateToWeatherScreen
+        )
     }
 }
 
@@ -345,7 +388,7 @@ fun ForecastItem(day: String, date: String, temp: String, icon: Painter) {
                 )
             ),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent // Đặt màu trong suốt để gradient hiển thị
+            containerColor = Color.Transparent
         ),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
@@ -397,24 +440,23 @@ fun BackgroundSwitch(
 
 @Composable
 fun CustomBottomNavigationBar(
+    modifier: Modifier = Modifier,
     onLocationClick: () -> Unit,
     onMenuClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(120.dp) // Chiều cao của thanh điều hướng
-            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) // Bo góc trên
-            .background(Color(0xFFFFF5E1)) // Màu nền nhạt giống trong hình
-            .padding(horizontal = 16.dp) // Khoảng cách hai bên
+            .height(120.dp)
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .background(Color(0xFFFFF5E1))
+            .padding(horizontal = 16.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize(),
-            horizontalArrangement = Arrangement.SpaceBetween, // Đặt hai biểu tượng ở hai đầu
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Biểu tượng vị trí
             IconButton(onClick = onLocationClick) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
@@ -422,8 +464,6 @@ fun CustomBottomNavigationBar(
                     tint = Color.Black
                 )
             }
-
-            // Biểu tượng menu
             IconButton(onClick = onMenuClick) {
                 Icon(
                     imageVector = Icons.Default.Menu,
@@ -434,4 +474,3 @@ fun CustomBottomNavigationBar(
         }
     }
 }
-

@@ -27,20 +27,22 @@ fun WeatherAppNavGraph(
             WeatherScreen(
                 onNavigateToHomeScreen = {
                     navController.navigate("homeScreen")
-                }
+                },
+                onNavigateBack = {navController.popBackStack()}
             )
         }
         composable("homeScreen") {
             HomeScreen(
                 onNavigateToCalendarScreen = {
                     navController.navigate("weatherCalendarScreen")
-                }
+                },
+                onNavigateBack = {navController.popBackStack()}
             )
         }
         composable("weatherCalendarScreen") {
             WeatherCalendarScreen(
                 onNavigateBack = {
-                    navController.popBackStack() // Quay lại màn hình trước đó
+                    navController.popBackStack() // Quay lại màn hình trước đó (HomeScreen)
                 }
             )
         }
