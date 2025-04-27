@@ -1,24 +1,63 @@
 package com.example.weatherapp.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherapp.WeatherState
+import com.example.weatherapp.WeatherViewModel
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
     onNavigateToCalendarScreen: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateToSettingsScreen: () -> Unit,
+    onNavigateBack: () -> Unit,
+    viewModel: WeatherViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val weatherState by viewModel.weatherState.collectAsState()
+    var isLocationPermissionGranted by remember { mutableStateOf(false) }
+
+    // Yêu cầu quyền truy cập vị trí
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        isLocationPermissionGranted = isGranted
+        if (isGranted) {
+            viewModel.fetchWeatherByLocation(context)
+        }
+    }
+
+    // Gọi fetchWeatherByLocation khi màn hình được tạo
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    // Xác định vị trí để hiển thị
+    val userLocation = when (weatherState) {
+        is WeatherState.Success -> {
+            val city = (weatherState as WeatherState.Success).data.name
+            "$city, ${countryNameFromCode((weatherState as WeatherState.Success).data.sys.country ?: "Unknown")}"
+        }
+        is WeatherState.Error -> "Hanoi, Vietnam"
+        is WeatherState.Loading -> "Loading..."
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -33,22 +72,37 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 40.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.Start // Căn trái tất cả các thành phần
         ) {
             // 🖙 Back Button + Location
-            Column {
-                CustomBackButton(onNavigateBack = onNavigateBack)
+            Column(
+                horizontalAlignment = Alignment.Start // Căn trái
+            ) {
+                IconButton(onClick = { onNavigateBack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // 🌍 Current Location
-                Column {
+                Column(
+                    horizontalAlignment = Alignment.Start // Căn trái
+                ) {
                     Text(
                         text = "Current location",
                         color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        fontFamily = sourceSans3
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start // Căn trái
+                    ) {
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
@@ -63,65 +117,49 @@ fun HomeScreen(
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Berlin, Germany", color = Color.White, fontSize = 20.sp)
+                        Text(
+                            text = userLocation,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontFamily = sourceSans3,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
 
-            // 📅 Menu Items (Canh giữa)
+            // 📅 Menu Items
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth()
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start // Căn trái
             ) {
                 MenuItem(Icons.Outlined.Event, "Calender") {
-                    onNavigateToCalendarScreen() // Điều hướng sang WeatherCalendarScreen
+                    onNavigateToCalendarScreen()
                 }
-                // Đã xóa menu item "Notifications" vì không nằm trong luồng navigation
             }
 
-            // ⚙️ Settings & Share App (Đặt sát dưới)
+            // ⚙️ Settings & Share App
             Column(
-                modifier = Modifier.padding(bottom = 140.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(bottom = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.Start // Căn trái
             ) {
                 Text(
-                    "Settings",
+                    text = "Settings",
                     color = Color.White,
                     fontSize = 20.sp,
-                    modifier = Modifier.clickable { }
+                    fontFamily = sourceSans3,
+                    modifier = Modifier.clickable { onNavigateToSettingsScreen() }
                 )
                 Text(
-                    "Share this app",
+                    text = "Share this app",
                     color = Color.White,
                     fontSize = 20.sp,
+                    fontFamily = sourceSans3,
                     modifier = Modifier.clickable { }
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun CustomBackButton(onNavigateBack: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .clickable { onNavigateBack() } // Sử dụng lambda thay vì navController
-            .padding(vertical = 12.dp)
-    ) {
-        Canvas(modifier = Modifier.size(13.dp, 12.dp)) {
-            drawLine(
-                color = Color.White,
-                start = Offset(size.width * 0.8f, 0f),
-                end = Offset(0f, size.height / 2),
-                strokeWidth = 6f
-            )
-            drawLine(
-                color = Color.White,
-                start = Offset(0f, size.height / 2),
-                end = Offset(size.width * 0.8f, size.height),
-                strokeWidth = 6f
-            )
         }
     }
 }
@@ -133,7 +171,8 @@ fun MenuItem(icon: ImageVector, title: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Start // Căn trái các thành phần trong Row
     ) {
         Box(
             contentAlignment = Alignment.Center,
@@ -144,6 +183,21 @@ fun MenuItem(icon: ImageVector, title: String, onClick: () -> Unit) {
             Icon(icon, contentDescription = title, tint = Color.White, modifier = Modifier.size(24.dp))
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Text(title, color = Color.White, fontSize = 20.sp)
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 20.sp,
+            fontFamily = sourceSans3
+        )
+    }
+}
+
+// Hàm chuyển đổi mã quốc gia thành tên quốc gia
+fun countryNameFromCode(countryCode: String): String {
+    return try {
+        val locale = Locale("", countryCode)
+        locale.displayCountry
+    } catch (e: Exception) {
+        "Unknown"
     }
 }

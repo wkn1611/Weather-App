@@ -10,9 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +31,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.Manifest
 import android.annotation.SuppressLint
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 @Composable
 fun WeatherCalendarScreen(
@@ -75,7 +75,7 @@ fun WeatherCalendarScreen(
         ) {
             IconButton(onClick = onNavigateBack) {
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.White
                 )
@@ -85,6 +85,7 @@ fun WeatherCalendarScreen(
                 color = Color.White,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = sourceSans3,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center
             )
@@ -123,7 +124,8 @@ fun ForecastCard(weatherState: WeatherState, dailyWeatherData: Map<String, Daily
             Text(
                 text = locationName,
                 color = Color.Black,
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                fontFamily = sourceSans3
             )
 
             // Display current date
@@ -132,10 +134,11 @@ fun ForecastCard(weatherState: WeatherState, dailyWeatherData: Map<String, Daily
             Text(
                 text = dateFormat.format(currentDate),
                 color = Color.Gray,
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                fontFamily = sourceSans3
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp)) // Giảm từ 8.dp xuống 4.dp
 
             // Hiển thị thời tiết cho 7 ngày từ Thứ Hai đến Chủ Nhật
             val calendar = Calendar.getInstance()
@@ -166,25 +169,27 @@ fun ForecastCard(weatherState: WeatherState, dailyWeatherData: Map<String, Daily
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = 4.dp), // Giảm từ 6.dp xuống 4.dp
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Image(
                             painter = painterResource(id = weatherInfo.icon),
                             contentDescription = weatherInfo.condition,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp) // Giảm từ 24.dp xuống 20.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = dayFormat.format(day.time),
                             color = Color.Black,
-                            fontSize = 16.sp,
+                            fontSize = 14.sp, // Giảm từ 16.sp xuống 14.sp
+                            fontFamily = sourceSans3,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             text = "${weatherInfo.temp}°C",
                             color = Color.Gray,
-                            fontSize = 14.sp
+                            fontSize = 12.sp, // Giảm từ 14.sp xuống 12.sp
+                            fontFamily = sourceSans3
                         )
                     }
                 }
@@ -239,7 +244,7 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
         colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
             .fillMaxWidth()
-            .height(400.dp)
+            .height(460.dp) // Tăng từ 440.dp lên 460.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -254,30 +259,33 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(
                     modifier = Modifier
-                        .weight(1f) // Giới hạn không gian cho Column này
-                        .padding(end = 8.dp) // Thêm padding để không sát vào phần bên phải
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 ) {
                     Text(
                         text = selectedWeather.condition,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1, // Giới hạn 1 dòng
-                        overflow = TextOverflow.Ellipsis // Cắt bớt văn bản nếu quá dài
+                        fontFamily = sourceSans3,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${selectedWeather.temp}°C", // Luôn hiển thị nhiệt độ
+                        text = "${selectedWeather.temp}°C",
                         fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = sourceSans3
                     )
                 }
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.width(IntrinsicSize.Min) // Đảm bảo không bị co lại
+                    modifier = Modifier.width(IntrinsicSize.Min)
                 ) {
                     Text(
                         text = currentDate.value.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault()),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = sourceSans3,
                         textAlign = TextAlign.End,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -286,6 +294,7 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
                         text = year.toString(),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = sourceSans3,
                         textAlign = TextAlign.End
                     )
                 }
@@ -303,7 +312,7 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
                     modifier = Modifier.size(32.dp).padding(end = 2.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.KeyboardArrowLeft,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                         contentDescription = "Previous"
                     )
                 }
@@ -312,7 +321,7 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.KeyboardArrowRight,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = "Next"
                     )
                 }
@@ -358,29 +367,30 @@ fun CalendarView(
                     text = it,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.width(40.dp),
+                    fontFamily = sourceSans3,
+                    modifier = Modifier.width(32.dp),
                     textAlign = TextAlign.Center
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         weeks.forEach { week ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 1.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 week.forEach { day ->
                     if (day == 0) {
-                        Spacer(modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.size(32.dp))
                     } else {
                         val isSelected = day == selectedDay
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(32.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(if (isSelected) Color.Black else Color.Transparent)
                                 .clickable { onDaySelected(day) },
@@ -390,6 +400,7 @@ fun CalendarView(
                                 text = day.toString(),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
+                                fontFamily = sourceSans3,
                                 color = if (isSelected) Color.White else Color.Black
                             )
                         }

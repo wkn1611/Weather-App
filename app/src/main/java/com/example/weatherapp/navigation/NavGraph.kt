@@ -1,9 +1,12 @@
+package com.example.weatherapp.navigation
+
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.weatherapp.MainScreen
+import com.example.weatherapp.SettingsScreen
 import com.example.weatherapp.ui.HomeScreen
 import com.example.weatherapp.ui.WeatherCalendarScreen
 import com.example.weatherapp.ui.WeatherScreen
@@ -14,7 +17,7 @@ fun WeatherAppNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = "mainScreen" // Điểm bắt đầu là MainScreen
+        startDestination = "mainScreen"
     ) {
         composable("mainScreen") {
             MainScreen(
@@ -28,7 +31,7 @@ fun WeatherAppNavGraph(
                 onNavigateToHomeScreen = {
                     navController.navigate("homeScreen")
                 },
-                onNavigateBack = {navController.popBackStack()}
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable("homeScreen") {
@@ -36,14 +39,22 @@ fun WeatherAppNavGraph(
                 onNavigateToCalendarScreen = {
                     navController.navigate("weatherCalendarScreen")
                 },
-                onNavigateBack = {navController.popBackStack()}
+                onNavigateToSettingsScreen = {
+                    navController.navigate("settingsScreen")
+                },
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable("weatherCalendarScreen") {
             WeatherCalendarScreen(
                 onNavigateBack = {
-                    navController.popBackStack() // Quay lại màn hình trước đó (HomeScreen)
+                    navController.popBackStack()
                 }
+            )
+        }
+        composable("settingsScreen") {
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() } // Thêm điều hướng quay lại
             )
         }
     }

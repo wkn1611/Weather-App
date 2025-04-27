@@ -21,8 +21,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,24 +36,19 @@ import com.example.weatherapp.normalizeCityName
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-// Font tùy chỉnh
-val sourceSans3 = FontFamily(
-    Font(R.font.ss3_regu, FontWeight.Normal),
-    Font(R.font.ss3_bold, FontWeight.Bold)
-)
-
 // Ánh xạ giữa tên chuẩn hóa và tên tiếng Việt
 val cityNameMapping = mapOf(
-    "Hanoi" to "Hà Nội",
+    "Ha Noi" to "Hà Nội",
     "Ho Chi Minh" to "Hồ Chí Minh",
-    "Can Tho" to "Cần Thơ", // Thêm Cần Thơ
+    "Can Tho" to "Cần Thơ",
     "Hue" to "Huế",
     "Vinh" to "Nghệ An"
 )
 
 // Ánh xạ cho các trường hợp đặc biệt (tỉnh/thành phố không được API hỗ trợ trực tiếp)
 val specialCityMapping = mapOf(
-    "Nghe An" to "Vinh"
+    "Nghệ An" to "Vinh",
+    "Ho Chi Minh" to "Ho Chi Minh City"
 )
 
 @Composable
@@ -67,7 +60,6 @@ fun WeatherScreen(
 ) {
     val cityWeatherStates by viewModel.cityWeatherStates.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
-    // Thay "Đà Nẵng" bằng "Cần Thơ"
     val defaultCities = listOf("Hà Nội", "Hồ Chí Minh", "Cần Thơ", "Huế").map { normalizeCityName(it) }
     var searchResultCity by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -136,7 +128,8 @@ fun WeatherScreen(
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 42.dp)
+                    fontFamily = sourceSans3,
+                    modifier = Modifier.padding(start = 28.dp)
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(onClick = onNavigateToHomeScreen) {
@@ -179,6 +172,7 @@ fun WeatherScreen(
                     Text(
                         text = "No results found",
                         color = Color.White,
+                        fontFamily = sourceSans3,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                 } else {
@@ -306,17 +300,20 @@ fun WeatherCard(weather: WeatherModel) {
                             text = weather.temperature,
                             fontSize = 32.sp,
                             color = Color.White,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = sourceSans3
                         )
                         Text(
                             text = "H: ${weather.highTemp}° L: ${weather.lowTemp}°",
                             fontSize = 10.sp,
-                            color = Color.White.copy(alpha = 0.8f)
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontFamily = sourceSans3
                         )
                         Text(
                             text = weather.city,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
+                            fontFamily = sourceSans3,
                             color = Color.White
                         )
                     }

@@ -25,13 +25,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherapp.ui.sourceSans3
 import java.text.SimpleDateFormat
 import java.util.*
 
 // Data class chứa thông số thời tiết
 data class WeatherDetails(
     val cityName: String = "N/A",
-    val temperature: String = "Updating...", // Thay đổi thành String để hiển thị "Updating..."
+    val temperature: String = "Updating...",
     val humidity: Int = 0,
     val weatherType: String = "Unknown",
     val date: String = "N/A",
@@ -59,7 +60,7 @@ fun getWeatherDetails(weatherState: WeatherState): WeatherDetails {
 
             WeatherDetails(
                 cityName = weatherData.name,
-                temperature = "${weatherData.main.temp.toInt()}°C", // Đơn vị là °C vì API dùng metric
+                temperature = "${weatherData.main.temp.toInt()}°C",
                 humidity = weatherData.main.humidity,
                 weatherType = weatherData.weather.firstOrNull()?.main ?: "Unknown",
                 date = formattedDate,
@@ -73,7 +74,7 @@ fun getWeatherDetails(weatherState: WeatherState): WeatherDetails {
             )
         }
         is WeatherState.Error -> {
-            WeatherDetails() // Trả về mặc định nếu có lỗi
+            WeatherDetails()
         }
     }
 }
@@ -86,7 +87,7 @@ fun getWeatherIcon(weather: WeatherResponse?): Int {
         "Clouds" -> R.drawable.clouds
         "Rain" -> R.drawable.rain
         "Thunderstorm" -> R.drawable.storm
-        else -> R.drawable.sunny // Mặc định
+        else -> R.drawable.sunny
     }
 }
 
@@ -111,13 +112,13 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
 
     // Gradient tùy chỉnh cho Card chứa ForecastItem
     val forecastCardActiveGradient = Brush.linearGradient(
-        colors = listOf(Color(0xFFAFCAFF), Color(0xFF7AAFFF)), // Gradient khi Switch bật: AFCAFF (xanh lam nhạt) -> 7AAFFF (xanh lam đậm hơn)
+        colors = listOf(Color(0xFFAFCAFF), Color(0xFF7AAFFF)),
         start = androidx.compose.ui.geometry.Offset(0f, 0f),
         end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
     )
 
     val forecastCardDefaultGradient = Brush.linearGradient(
-        colors = listOf(Color(0xFFFFEEB2), Color(0xFFFFF7D9)), // Gradient khi Switch tắt: FFEEB2 (vàng nhạt) -> FFF7D9 (vàng rất nhạt)
+        colors = listOf(Color(0xFFFFEEB2), Color(0xFFFFF7D9)),
         start = androidx.compose.ui.geometry.Offset(0f, 0f),
         end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
     )
@@ -137,7 +138,6 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
         if (isGranted) {
             viewModel.fetchWeatherByLocation(context)
         } else {
-            // Handle permission denied: fetch weather for a default city
             viewModel.fetchWeatherByCity("Hanoi")
         }
     }
@@ -153,7 +153,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
     // Lấy danh sách dự báo từ forecastState: ngày hiện tại + 3 ngày tiếp theo (tổng 4 ngày)
     val forecastList = when (forecastState) {
         is ForecastState.Success -> {
-            (forecastState as ForecastState.Success).forecast.drop(1).take(4) // Bỏ ngày hiện tại, lấy 4 ngày tiếp theo
+            (forecastState as ForecastState.Success).forecast.drop(1).take(4)
         }
         else -> emptyList()
     }
@@ -222,6 +222,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
                                 color = Color.White,
                                 fontSize = if (weatherDetails.temperature == "Updating...") 24.sp else 48.sp,
                                 fontWeight = FontWeight.Bold,
+                                fontFamily = sourceSans3,
                                 modifier = Modifier
                                     .alpha(if (weatherDetails.temperature == "Updating...") 0.7f else 1f)
                             )
@@ -230,12 +231,14 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
                                 text = weatherDetails.cityName,
                                 color = Color.White,
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = sourceSans3
                             )
                             Text(
                                 text = weatherDetails.date,
                                 color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                fontFamily = sourceSans3
                             )
                         }
                     }
@@ -247,23 +250,24 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
             Card(
                 modifier = Modifier
                     .width(355.dp)
-                    .height(240.dp)
+                    .height(220.dp)
                     .clip(RoundedCornerShape(16.dp)),
                 colors = CardDefaults.cardColors(containerColor = Color(0xffffffff))
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(12.dp)
-                        .height(250.dp),
+                        .padding(10.dp)
+                        .height(200.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "AIR QUALITY",
                         color = Color.Black,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = sourceSans3
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -284,7 +288,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
                             value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunrise * 1000L))
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -369,9 +373,19 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
 @Composable
 fun WeatherDetailItem(image: Painter, label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Image(painter = image, contentDescription = label, modifier = Modifier.size(46.dp))
-        Text(text = label, color = Color.Gray, fontSize = 12.sp)
-        Text(text = value, color = Color.Black, fontSize = 16.sp)
+        Image(painter = image, contentDescription = label, modifier = Modifier.size(40.dp))
+        Text(
+            text = label,
+            color = Color.Gray,
+            fontSize = 10.sp,
+            fontFamily = sourceSans3
+        )
+        Text(
+            text = value,
+            color = Color.Black,
+            fontSize = 14.sp,
+            fontFamily = sourceSans3
+        )
     }
 }
 
@@ -397,9 +411,19 @@ fun ForecastItem(day: String, date: String, temp: String, icon: Painter) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = day, color = Color.White, fontSize = 14.sp)
+            Text(
+                text = day,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontFamily = sourceSans3
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = date, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+            Text(
+                text = date,
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                fontFamily = sourceSans3
+            )
             Spacer(modifier = Modifier.height(12.dp))
             Image(
                 painter = icon,
@@ -407,7 +431,12 @@ fun ForecastItem(day: String, date: String, temp: String, icon: Painter) {
                 modifier = Modifier.size(62.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = temp, color = Color.White, fontSize = 16.sp)
+            Text(
+                text = temp,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontFamily = sourceSans3
+            )
         }
     }
 }
