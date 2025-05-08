@@ -1,6 +1,6 @@
-package com.example.weatherapp.model
+package com.mi3mien.weatherapp.model
 
-import com.example.weatherapp.R
+import com.mi3mien.weatherapp.R
 
 data class WeatherModel(
     val temperature: String,
