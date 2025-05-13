@@ -58,9 +58,9 @@ fun getWeatherDetails(weatherState: WeatherState): WeatherDetails {
         }
         is WeatherState.Success -> {
             val weatherData = weatherState.data
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
             val date = Date(weatherData.dt * 1000L)
-            val displayDateFormat = SimpleDateFormat("EEE d MMM", Locale.getDefault())
+            val displayDateFormat = SimpleDateFormat("EEE d MMM", Locale.US) // Use Locale.US for English
             val formattedDate = displayDateFormat.format(date)
 
             WeatherDetails(
@@ -280,7 +280,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "AIR QUALITY",
+                        text = "Air Quality",
                         color = Color.Black,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
@@ -293,18 +293,18 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
                     ) {
                         WeatherDetailItem(
                             image = painterResource(id = R.drawable.wind),
-                            label = "WIND",
+                            label = "Wind",
                             "${weatherDetails.windSpeed} m/s"
                         )
                         WeatherDetailItem(
                             image = painterResource(id = R.drawable.dioxide),
-                            label = "HUMIDITY",
+                            label = "Humidity",
                             "${weatherDetails.humidity}%"
                         )
                         WeatherDetailItem(
                             image = painterResource(id = R.drawable.sunrise11),
-                            label = "SUNRISE",
-                            value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunrise * 1000L))
+                            label = "Sunrise",
+                            value = SimpleDateFormat("HH:mm", Locale.US).format(Date(weatherDetails.sunrise * 1000L))
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
@@ -314,18 +314,18 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
                     ) {
                         WeatherDetailItem(
                             image = painterResource(id = R.drawable.hightemp),
-                            label = "TEMP MAX",
+                            label = "Temp Max",
                             "${weatherDetails.tempMax}°C"
                         )
                         WeatherDetailItem(
                             image = painterResource(id = R.drawable.lowtemp),
-                            label = "TEMP MIN",
+                            label = "Temp Min",
                             "${weatherDetails.tempMin}°C"
                         )
                         WeatherDetailItem(
                             image = painterResource(id = R.drawable.sunset),
-                            label = "SUNSET",
-                            value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(weatherDetails.sunset * 1000L))
+                            label = "Sunset",
+                            value = SimpleDateFormat("HH:mm", Locale.US).format(Date(weatherDetails.sunset * 1000L))
                         )
                     }
                 }
@@ -359,8 +359,8 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(), onNavigateToWeatherScr
                         }
                     } else {
                         forecastList.forEach { forecast ->
-                            val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
-                            val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
+                            val dateFormat = SimpleDateFormat("dd/MM", Locale.US)
+                            val dayFormat = SimpleDateFormat("EEE", Locale.US) // Use Locale.US for English
                             ForecastItem(
                                 day = dayFormat.format(forecast.date),
                                 date = dateFormat.format(forecast.date),

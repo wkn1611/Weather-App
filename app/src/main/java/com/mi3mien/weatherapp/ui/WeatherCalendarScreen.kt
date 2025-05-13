@@ -131,9 +131,9 @@ fun ForecastCard(weatherState: WeatherState, dailyWeatherData: Map<String, Daily
                 fontFamily = sourceSans3
             )
 
-            // Display current date
+            // Display current date in English
             val currentDate = Calendar.getInstance().time
-            val dateFormat = SimpleDateFormat("MMMM, d, yyyy", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US) // Use Locale.US for English
             Text(
                 text = dateFormat.format(currentDate),
                 color = Color.Gray,
@@ -141,7 +141,7 @@ fun ForecastCard(weatherState: WeatherState, dailyWeatherData: Map<String, Daily
                 fontFamily = sourceSans3
             )
 
-            Spacer(modifier = Modifier.height(4.dp)) // Giảm từ 8.dp xuống 4.dp
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Hiển thị thời tiết cho 7 ngày từ Thứ Hai đến Chủ Nhật
             val calendar = Calendar.getInstance()
@@ -157,8 +157,8 @@ fun ForecastCard(weatherState: WeatherState, dailyWeatherData: Map<String, Daily
                 dayCalendar
             }
 
-            val dayFormat = SimpleDateFormat("EEEE", Locale.getDefault())
-            val dateKeyFormat = SimpleDateFormat("yyyy-M-d", Locale.getDefault())
+            val dayFormat = SimpleDateFormat("EEEE", Locale.US) // Use Locale.US for English day names
+            val dateKeyFormat = SimpleDateFormat("yyyy-M-d", Locale.US)
 
             LazyColumn {
                 items(daysOfWeek) { day ->
@@ -172,26 +172,26 @@ fun ForecastCard(weatherState: WeatherState, dailyWeatherData: Map<String, Daily
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp), // Giảm từ 6.dp xuống 4.dp
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Image(
                             painter = painterResource(id = weatherInfo.icon),
                             contentDescription = weatherInfo.condition,
-                            modifier = Modifier.size(20.dp) // Giảm từ 24.dp xuống 20.dp
+                            modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = dayFormat.format(day.time),
+                            text = dayFormat.format(day.time), // Will display "Monday", "Tuesday", etc.
                             color = Color.Black,
-                            fontSize = 14.sp, // Giảm từ 16.sp xuống 14.sp
+                            fontSize = 14.sp,
                             fontFamily = sourceSans3,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             text = "${weatherInfo.temp}°C",
                             color = Color.Gray,
-                            fontSize = 12.sp, // Giảm từ 14.sp xuống 12.sp
+                            fontSize = 12.sp,
                             fontFamily = sourceSans3
                         )
                     }
@@ -232,7 +232,7 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
     }
 
     // Định dạng key cho ngày được chọn
-    val dateFormat = SimpleDateFormat("yyyy-M-d", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("yyyy-M-d", Locale.US)
     val selectedDateKey = dateFormat.format(selectedDate.value.time)
 
     // Lấy thông tin thời tiết cho ngày được chọn
@@ -247,7 +247,7 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
         colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
             .fillMaxWidth()
-            .height(460.dp) // Tăng từ 440.dp lên 460.dp
+            .height(460.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -285,7 +285,7 @@ fun CalendarCard(dailyWeatherData: Map<String, DailyWeatherInfo>) {
                     modifier = Modifier.width(IntrinsicSize.Min)
                 ) {
                     Text(
-                        text = currentDate.value.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault()),
+                        text = currentDate.value.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.US), // Use Locale.US for English month names
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = sourceSans3,
